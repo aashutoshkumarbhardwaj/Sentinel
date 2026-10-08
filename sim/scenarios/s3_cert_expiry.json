@@ -1,0 +1,456 @@
+{
+  "id": "S3",
+  "title": "login failures: 502 from api-gateway",
+  "alert": {
+    "id": "ALRT-6003",
+    "fired_at": "2026-10-07T11:05Z",
+    "severity": "SEV1",
+    "summary": "login success rate below 40% for 4 minutes",
+    "service": "api-gateway"
+  },
+  "services": [
+    {
+      "name": "api-gateway",
+      "tier": 1,
+      "critical": true
+    },
+    {
+      "name": "auth-service",
+      "tier": 1,
+      "critical": true
+    },
+    {
+      "name": "user-db",
+      "tier": 1,
+      "critical": true
+    },
+    {
+      "name": "session-cache",
+      "tier": 2,
+      "critical": false
+    }
+  ],
+  "deploys": [
+    {
+      "service": "api-gateway",
+      "version": "v7.2.0",
+      "at": "2026-10-07T08:10Z",
+      "by": "ci-bot",
+      "notes": "stricter TLS verification for upstream calls",
+      "previous": "v7.1.4"
+    }
+  ],
+  "configs": {
+    "api-gateway": {
+      "version": "v7.2.0",
+      "verify_upstream_tls": true,
+      "upstream_timeout_ms": 5000
+    },
+    "auth-service": {
+      "tls_cert_ref": "auth-cert-2025-10",
+      "tls_cert_not_after": "2026-10-07T11:00:00Z",
+      "replicas": 3
+    },
+    "user-db": {
+      "max_connections": 100
+    },
+    "session-cache": {
+      "eviction": "lru"
+    }
+  },
+  "metrics": {
+    "before_fix": {
+      "api-gateway": {
+        "login_success_rate_pct": [
+          [
+            "2026-10-07T10:40Z",
+            99.6
+          ],
+          [
+            "2026-10-07T10:45Z",
+            99.5
+          ],
+          [
+            "2026-10-07T10:50Z",
+            99.6
+          ],
+          [
+            "2026-10-07T10:55Z",
+            99.5
+          ],
+          [
+            "2026-10-07T11:00Z",
+            62.0
+          ],
+          [
+            "2026-10-07T11:05Z",
+            18.0
+          ],
+          [
+            "2026-10-07T11:10Z",
+            12.0
+          ],
+          [
+            "2026-10-07T11:15Z",
+            11.0
+          ],
+          [
+            "2026-10-07T11:20Z",
+            11.0
+          ],
+          [
+            "2026-10-07T11:25Z",
+            10.0
+          ]
+        ]
+      },
+      "auth-service": {
+        "tls_handshake_failures": [
+          [
+            "2026-10-07T10:40Z",
+            0
+          ],
+          [
+            "2026-10-07T10:45Z",
+            0
+          ],
+          [
+            "2026-10-07T10:50Z",
+            0
+          ],
+          [
+            "2026-10-07T10:55Z",
+            0
+          ],
+          [
+            "2026-10-07T11:00Z",
+            410
+          ],
+          [
+            "2026-10-07T11:05Z",
+            980
+          ],
+          [
+            "2026-10-07T11:10Z",
+            1020
+          ],
+          [
+            "2026-10-07T11:15Z",
+            1010
+          ],
+          [
+            "2026-10-07T11:20Z",
+            1000
+          ],
+          [
+            "2026-10-07T11:25Z",
+            1005
+          ]
+        ]
+      },
+      "user-db": {
+        "active_connections": [
+          [
+            "2026-10-07T10:40Z",
+            9
+          ],
+          [
+            "2026-10-07T10:45Z",
+            9
+          ],
+          [
+            "2026-10-07T10:50Z",
+            10
+          ],
+          [
+            "2026-10-07T10:55Z",
+            9
+          ],
+          [
+            "2026-10-07T11:00Z",
+            9
+          ],
+          [
+            "2026-10-07T11:05Z",
+            9
+          ],
+          [
+            "2026-10-07T11:10Z",
+            8
+          ],
+          [
+            "2026-10-07T11:15Z",
+            9
+          ],
+          [
+            "2026-10-07T11:20Z",
+            9
+          ],
+          [
+            "2026-10-07T11:25Z",
+            9
+          ]
+        ]
+      },
+      "session-cache": {
+        "hit_ratio": [
+          [
+            "2026-10-07T10:40Z",
+            0.91
+          ],
+          [
+            "2026-10-07T10:45Z",
+            0.91
+          ],
+          [
+            "2026-10-07T10:50Z",
+            0.9
+          ],
+          [
+            "2026-10-07T10:55Z",
+            0.91
+          ],
+          [
+            "2026-10-07T11:00Z",
+            0.88
+          ],
+          [
+            "2026-10-07T11:05Z",
+            0.8
+          ],
+          [
+            "2026-10-07T11:10Z",
+            0.74
+          ],
+          [
+            "2026-10-07T11:15Z",
+            0.72
+          ],
+          [
+            "2026-10-07T11:20Z",
+            0.71
+          ],
+          [
+            "2026-10-07T11:25Z",
+            0.7
+          ]
+        ]
+      }
+    },
+    "after_fix": {
+      "api-gateway": {
+        "login_success_rate_pct": [
+          [
+            "2026-10-07T11:40Z",
+            99.4
+          ],
+          [
+            "2026-10-07T11:45Z",
+            99.6
+          ],
+          [
+            "2026-10-07T11:50Z",
+            99.5
+          ]
+        ]
+      },
+      "auth-service": {
+        "tls_handshake_failures": [
+          [
+            "2026-10-07T11:40Z",
+            0
+          ],
+          [
+            "2026-10-07T11:45Z",
+            0
+          ],
+          [
+            "2026-10-07T11:50Z",
+            0
+          ]
+        ]
+      },
+      "user-db": {
+        "active_connections": [
+          [
+            "2026-10-07T11:40Z",
+            9
+          ],
+          [
+            "2026-10-07T11:45Z",
+            10
+          ],
+          [
+            "2026-10-07T11:50Z",
+            9
+          ]
+        ]
+      },
+      "session-cache": {
+        "hit_ratio": [
+          [
+            "2026-10-07T11:40Z",
+            0.8
+          ],
+          [
+            "2026-10-07T11:45Z",
+            0.86
+          ],
+          [
+            "2026-10-07T11:50Z",
+            0.9
+          ]
+        ]
+      }
+    }
+  },
+  "logs": {
+    "before_fix": [
+      {
+        "ts": "2026-10-07T08:11Z",
+        "service": "api-gateway",
+        "level": "INFO",
+        "msg": "service started version=v7.2.0 (stricter TLS verification for upstreams)"
+      },
+      {
+        "ts": "2026-10-07T09:30Z",
+        "service": "session-cache",
+        "level": "INFO",
+        "msg": "hit_ratio 0.91"
+      },
+      {
+        "ts": "2026-10-07T10:50Z",
+        "service": "api-gateway",
+        "level": "INFO",
+        "msg": "POST /v1/login 200 120ms"
+      },
+      {
+        "ts": "2026-10-07T11:00Z",
+        "service": "auth-service",
+        "level": "ERROR",
+        "msg": "tls: failed to verify certificate: x509: certificate has expired or is not yet valid: current time 2026-10-07T11:00:02Z is after 2026-10-07T11:00:00Z"
+      },
+      {
+        "ts": "2026-10-07T11:01Z",
+        "service": "api-gateway",
+        "level": "ERROR",
+        "msg": "TLS handshake error to auth-service:8443: remote error: tls: bad certificate"
+      },
+      {
+        "ts": "2026-10-07T11:01Z",
+        "service": "api-gateway",
+        "level": "ERROR",
+        "msg": "POST /v1/login 502 upstream auth-service unavailable"
+      },
+      {
+        "ts": "2026-10-07T11:03Z",
+        "service": "auth-service",
+        "level": "ERROR",
+        "msg": "tls: failed to verify certificate: x509: certificate has expired or is not yet valid"
+      },
+      {
+        "ts": "2026-10-07T11:04Z",
+        "service": "api-gateway",
+        "level": "ERROR",
+        "msg": "POST /v1/login 502 upstream auth-service unavailable"
+      },
+      {
+        "ts": "2026-10-07T11:05Z",
+        "service": "user-db",
+        "level": "INFO",
+        "msg": "active connections 9 of 100; no slow queries"
+      },
+      {
+        "ts": "2026-10-07T11:06Z",
+        "service": "session-cache",
+        "level": "WARN",
+        "msg": "eviction rate elevated (login retries creating sessions)"
+      },
+      {
+        "ts": "2026-10-07T11:08Z",
+        "service": "api-gateway",
+        "level": "ERROR",
+        "msg": "POST /v1/login 502 upstream auth-service unavailable"
+      }
+    ],
+    "after_fix": [
+      {
+        "ts": "2026-10-07T11:41Z",
+        "service": "auth-service",
+        "level": "INFO",
+        "msg": "loaded certificate auth-cert-2026-10 notAfter=2027-10-07T11:00:00Z"
+      },
+      {
+        "ts": "2026-10-07T11:42Z",
+        "service": "api-gateway",
+        "level": "INFO",
+        "msg": "TLS handshake to auth-service:8443 ok"
+      },
+      {
+        "ts": "2026-10-07T11:42Z",
+        "service": "api-gateway",
+        "level": "INFO",
+        "msg": "POST /v1/login 200 118ms"
+      }
+    ]
+  },
+  "health": {
+    "before_fix": {
+      "api-gateway": {
+        "status": "degraded",
+        "login_success_rate_pct": 10.0
+      },
+      "auth-service": {
+        "status": "degraded",
+        "tls": "certificate expired"
+      },
+      "user-db": {
+        "status": "healthy"
+      },
+      "session-cache": {
+        "status": "healthy"
+      }
+    },
+    "after_fix": {
+      "api-gateway": {
+        "status": "healthy",
+        "login_success_rate_pct": 99.5
+      },
+      "auth-service": {
+        "status": "healthy",
+        "tls": "valid until 2027-10-07"
+      },
+      "user-db": {
+        "status": "healthy"
+      },
+      "session-cache": {
+        "status": "healthy"
+      }
+    }
+  },
+  "remediations": [
+    {
+      "action": "update_config",
+      "target": "auth-service",
+      "params": {
+        "set": {
+          "tls_cert_ref": "auth-cert-2026-10"
+        }
+      },
+      "detail": "auth-service now loads auth-cert-2026-10; rolling reload complete"
+    }
+  ],
+  "wrong_action_effects": {
+    "rollback_deploy:api-gateway": "api-gateway rolled back to v7.1.4; it still rejects the expired certificate path or fails the handshake; login errors continue",
+    "restart_service:auth-service": "auth-service restarted; it reloaded the same expired certificate; handshake errors continue",
+    "restart_service:api-gateway": "api-gateway restarted; 502 errors continue",
+    "flush_cache:session-cache": "cache flushed; no effect on login failures; users must log in again",
+    "scale_service:auth-service": "more replicas started; each loads the same expired certificate; errors continue",
+    "update_config:api-gateway": "verify_upstream_tls changed; this disables certificate verification and is a security risk; handshakes may pass but the expired certificate remains"
+  },
+  "chaos_failures": {
+    "search_logs": 1,
+    "check_health": 2,
+    "get_config": 1
+  }
+}

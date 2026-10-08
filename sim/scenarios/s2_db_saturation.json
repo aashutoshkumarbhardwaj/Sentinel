@@ -1,0 +1,513 @@
+{
+  "id": "S2",
+  "title": "checkout failures: database connection saturation",
+  "alert": {
+    "id": "ALRT-5120",
+    "fired_at": "2026-03-21T14:12Z",
+    "severity": "SEV1",
+    "summary": "checkout-api error rate above 20% for 3 minutes",
+    "service": "checkout-api"
+  },
+  "services": [
+    {
+      "name": "checkout-api",
+      "tier": 1,
+      "critical": true
+    },
+    {
+      "name": "orders-db",
+      "tier": 1,
+      "critical": true
+    },
+    {
+      "name": "reporting-job",
+      "tier": 3,
+      "critical": false
+    },
+    {
+      "name": "cache-service",
+      "tier": 2,
+      "critical": false
+    }
+  ],
+  "deploys": [
+    {
+      "service": "checkout-api",
+      "version": "v5.8.1",
+      "at": "2026-03-21T11:29Z",
+      "by": "ci-bot",
+      "notes": "log format change only",
+      "previous": "v5.8.0"
+    }
+  ],
+  "configs": {
+    "checkout-api": {
+      "version": "v5.8.1",
+      "db_pool_size": 40,
+      "replicas": 6
+    },
+    "orders-db": {
+      "max_connections": 200,
+      "statement_timeout_ms": 0
+    },
+    "reporting-job": {
+      "schedule": "0 14 * * *",
+      "use_read_replica": false,
+      "changed_at": "2026-03-21T09:05Z",
+      "changed_by": "data-team",
+      "previous_schedule": "0 2 * * *"
+    },
+    "cache-service": {
+      "eviction": "lru"
+    }
+  },
+  "metrics": {
+    "before_fix": {
+      "checkout-api": {
+        "error_rate_pct": [
+          [
+            "2026-03-21T13:40Z",
+            0.3
+          ],
+          [
+            "2026-03-21T13:45Z",
+            0.3
+          ],
+          [
+            "2026-03-21T13:50Z",
+            0.4
+          ],
+          [
+            "2026-03-21T13:55Z",
+            0.4
+          ],
+          [
+            "2026-03-21T14:00Z",
+            1.1
+          ],
+          [
+            "2026-03-21T14:05Z",
+            6.0
+          ],
+          [
+            "2026-03-21T14:10Z",
+            24.0
+          ],
+          [
+            "2026-03-21T14:15Z",
+            38.0
+          ],
+          [
+            "2026-03-21T14:20Z",
+            41.0
+          ],
+          [
+            "2026-03-21T14:25Z",
+            40.0
+          ]
+        ]
+      },
+      "orders-db": {
+        "active_connections": [
+          [
+            "2026-03-21T13:40Z",
+            22
+          ],
+          [
+            "2026-03-21T13:45Z",
+            21
+          ],
+          [
+            "2026-03-21T13:50Z",
+            24
+          ],
+          [
+            "2026-03-21T13:55Z",
+            90
+          ],
+          [
+            "2026-03-21T14:00Z",
+            150
+          ],
+          [
+            "2026-03-21T14:05Z",
+            168
+          ],
+          [
+            "2026-03-21T14:10Z",
+            199
+          ],
+          [
+            "2026-03-21T14:15Z",
+            200
+          ],
+          [
+            "2026-03-21T14:20Z",
+            200
+          ],
+          [
+            "2026-03-21T14:25Z",
+            200
+          ]
+        ],
+        "slow_queries": [
+          [
+            "2026-03-21T13:40Z",
+            0
+          ],
+          [
+            "2026-03-21T13:45Z",
+            0
+          ],
+          [
+            "2026-03-21T13:50Z",
+            0
+          ],
+          [
+            "2026-03-21T13:55Z",
+            1
+          ],
+          [
+            "2026-03-21T14:00Z",
+            1
+          ],
+          [
+            "2026-03-21T14:05Z",
+            1
+          ],
+          [
+            "2026-03-21T14:10Z",
+            1
+          ],
+          [
+            "2026-03-21T14:15Z",
+            1
+          ],
+          [
+            "2026-03-21T14:20Z",
+            1
+          ],
+          [
+            "2026-03-21T14:25Z",
+            1
+          ]
+        ]
+      },
+      "reporting-job": {
+        "rows_scanned_millions": [
+          [
+            "2026-03-21T13:40Z",
+            0
+          ],
+          [
+            "2026-03-21T13:45Z",
+            0
+          ],
+          [
+            "2026-03-21T13:50Z",
+            0
+          ],
+          [
+            "2026-03-21T13:55Z",
+            4
+          ],
+          [
+            "2026-03-21T14:00Z",
+            31
+          ],
+          [
+            "2026-03-21T14:05Z",
+            62
+          ],
+          [
+            "2026-03-21T14:10Z",
+            95
+          ],
+          [
+            "2026-03-21T14:15Z",
+            130
+          ],
+          [
+            "2026-03-21T14:20Z",
+            160
+          ],
+          [
+            "2026-03-21T14:25Z",
+            190
+          ]
+        ]
+      },
+      "cache-service": {
+        "hit_ratio": [
+          [
+            "2026-03-21T13:40Z",
+            0.94
+          ],
+          [
+            "2026-03-21T13:45Z",
+            0.94
+          ],
+          [
+            "2026-03-21T13:50Z",
+            0.94
+          ],
+          [
+            "2026-03-21T13:55Z",
+            0.94
+          ],
+          [
+            "2026-03-21T14:00Z",
+            0.94
+          ],
+          [
+            "2026-03-21T14:05Z",
+            0.94
+          ],
+          [
+            "2026-03-21T14:10Z",
+            0.94
+          ],
+          [
+            "2026-03-21T14:15Z",
+            0.94
+          ],
+          [
+            "2026-03-21T14:20Z",
+            0.94
+          ],
+          [
+            "2026-03-21T14:25Z",
+            0.94
+          ]
+        ]
+      }
+    },
+    "after_fix": {
+      "checkout-api": {
+        "error_rate_pct": [
+          [
+            "2026-03-21T14:35Z",
+            0.4
+          ],
+          [
+            "2026-03-21T14:40Z",
+            0.3
+          ],
+          [
+            "2026-03-21T14:45Z",
+            0.3
+          ]
+        ]
+      },
+      "orders-db": {
+        "active_connections": [
+          [
+            "2026-03-21T14:35Z",
+            19
+          ],
+          [
+            "2026-03-21T14:40Z",
+            21
+          ],
+          [
+            "2026-03-21T14:45Z",
+            20
+          ]
+        ],
+        "slow_queries": [
+          [
+            "2026-03-21T14:35Z",
+            0
+          ],
+          [
+            "2026-03-21T14:40Z",
+            0
+          ],
+          [
+            "2026-03-21T14:45Z",
+            0
+          ]
+        ]
+      },
+      "reporting-job": {
+        "rows_scanned_millions": [
+          [
+            "2026-03-21T14:35Z",
+            0
+          ],
+          [
+            "2026-03-21T14:40Z",
+            0
+          ],
+          [
+            "2026-03-21T14:45Z",
+            0
+          ]
+        ]
+      },
+      "cache-service": {
+        "hit_ratio": [
+          [
+            "2026-03-21T14:35Z",
+            0.94
+          ],
+          [
+            "2026-03-21T14:40Z",
+            0.94
+          ],
+          [
+            "2026-03-21T14:45Z",
+            0.94
+          ]
+        ]
+      }
+    }
+  },
+  "logs": {
+    "before_fix": [
+      {
+        "ts": "2026-03-21T11:30Z",
+        "service": "checkout-api",
+        "level": "INFO",
+        "msg": "service started version=v5.8.1 (log format change only)"
+      },
+      {
+        "ts": "2026-03-21T13:58Z",
+        "service": "reporting-job",
+        "level": "INFO",
+        "msg": "export_orders_full started (schedule trigger 0 14 * * *)"
+      },
+      {
+        "ts": "2026-03-21T13:59Z",
+        "service": "reporting-job",
+        "level": "INFO",
+        "msg": "query: SELECT * FROM orders o JOIN order_items i ... (no LIMIT, no read replica)"
+      },
+      {
+        "ts": "2026-03-21T14:06Z",
+        "service": "orders-db",
+        "level": "WARN",
+        "msg": "active connections 168 of 200"
+      },
+      {
+        "ts": "2026-03-21T14:09Z",
+        "service": "orders-db",
+        "level": "WARN",
+        "msg": "long-running query pid=7731 user=reporting duration=11m holds 140 connections via pooled cursors"
+      },
+      {
+        "ts": "2026-03-21T14:11Z",
+        "service": "checkout-api",
+        "level": "ERROR",
+        "msg": "could not obtain db connection: too many clients already"
+      },
+      {
+        "ts": "2026-03-21T14:12Z",
+        "service": "checkout-api",
+        "level": "ERROR",
+        "msg": "POST /v1/checkout 500 db unavailable"
+      },
+      {
+        "ts": "2026-03-21T14:13Z",
+        "service": "orders-db",
+        "level": "ERROR",
+        "msg": "FATAL: remaining connection slots are reserved for superuser"
+      },
+      {
+        "ts": "2026-03-21T14:14Z",
+        "service": "checkout-api",
+        "level": "ERROR",
+        "msg": "POST /v1/checkout 500 db unavailable"
+      },
+      {
+        "ts": "2026-03-21T14:15Z",
+        "service": "cache-service",
+        "level": "INFO",
+        "msg": "hit_ratio 0.94"
+      }
+    ],
+    "after_fix": [
+      {
+        "ts": "2026-03-21T14:31Z",
+        "service": "reporting-job",
+        "level": "INFO",
+        "msg": "job stopped by operator; connections released"
+      },
+      {
+        "ts": "2026-03-21T14:32Z",
+        "service": "orders-db",
+        "level": "INFO",
+        "msg": "active connections 19 of 200"
+      },
+      {
+        "ts": "2026-03-21T14:33Z",
+        "service": "checkout-api",
+        "level": "INFO",
+        "msg": "POST /v1/checkout 200 74ms"
+      }
+    ]
+  },
+  "health": {
+    "before_fix": {
+      "checkout-api": {
+        "status": "degraded",
+        "error_rate_pct": 40.0
+      },
+      "orders-db": {
+        "status": "degraded",
+        "connections_used_pct": 100
+      },
+      "reporting-job": {
+        "status": "running"
+      },
+      "cache-service": {
+        "status": "healthy"
+      }
+    },
+    "after_fix": {
+      "checkout-api": {
+        "status": "healthy",
+        "error_rate_pct": 0.3
+      },
+      "orders-db": {
+        "status": "healthy",
+        "connections_used_pct": 10
+      },
+      "reporting-job": {
+        "status": "stopped"
+      },
+      "cache-service": {
+        "status": "healthy"
+      }
+    }
+  },
+  "remediations": [
+    {
+      "action": "restart_service",
+      "target": "reporting-job",
+      "params": {},
+      "detail": "reporting-job stopped; 140 connections released"
+    },
+    {
+      "action": "update_config",
+      "target": "reporting-job",
+      "params": {
+        "set": {
+          "schedule": "0 2 * * *"
+        }
+      },
+      "resolves": false,
+      "detail": "schedule restored to 0 2 * * *; the running job is NOT stopped by this change"
+    }
+  ],
+  "wrong_action_effects": {
+    "restart_service:orders-db": "orders-db restarted; 42 in-flight checkouts dropped; reporting-job reconnected and saturation returned within 2 minutes",
+    "restart_service:checkout-api": "checkout-api restarted; pods cannot get connections; errors continue",
+    "scale_service:checkout-api": "more replicas started; they compete for the same exhausted connection slots; errors worsen",
+    "flush_cache:cache-service": "cache flushed; no effect on database saturation"
+  },
+  "chaos_failures": {
+    "search_logs": 2,
+    "get_metrics": 1
+  }
+}

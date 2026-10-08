@@ -1,0 +1,7 @@
+.venv/
+__pycache__/
+*.pyc
+*.sqlite
+.pytest_cache/
+run_record.json
+.uv/
