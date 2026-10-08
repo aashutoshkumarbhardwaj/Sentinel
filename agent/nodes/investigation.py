@@ -14,7 +14,8 @@ def _evidence_id(
     tool: str,
     index: int,
 ) -> str:
-    return f'{tool}:{index}'
+    """Generate a unique ID for an evidence item."""
+    return f"{tool}:{index}"
 
 
 def _append_evidence(
@@ -22,19 +23,19 @@ def _append_evidence(
     tool: str,
     data: Any,
 ) -> list[dict[str, Any]]:
-
-    evidence = list(state.get('evidence', []))
+    """Helper to append new evidence item with unique ID to state evidence list."""
+    evidence = list(state.get("evidence", []))
 
     evidence.append(
         {
-            'id': _evidence_id(
+            "id": _evidence_id(
                 tool,
                 len(evidence),
             ),
-            'source': tool,
-            'data': data,
-            'supports': [],
-            'contradicts': [],
+            "source": tool,
+            "data": data,
+            "supports": [],
+            "contradicts": [],
         }
     )
 
@@ -44,35 +45,22 @@ def _append_evidence(
 def _extract_services(
     state: IncidentState,
 ) -> list[str]:
-
+    """Extract affected service names from alert metadata and gathered evidence."""
     services: set[str] = set()
+    alert = state.get("alert") or {}
 
-    alert = state.get('alert') or {}
-
-    for key in (
-        'service',
-        'affected_service',
-        'source_service',
-    ):
+    for key in ("service", "affected_service", "source_service"):
         value = alert.get(key)
-
         if isinstance(value, str):
             services.add(value)
 
-    for evidence in state.get('evidence', []):
-
-        data = evidence.get('data')
-
+    for evidence in state.get("evidence", []):
+        data = evidence.get("data")
         if not isinstance(data, dict):
             continue
 
-        for key in (
-            'service',
-            'affected_service',
-            'source_service',
-        ):
+        for key in ("service", "affected_service", "source_service"):
             value = data.get(key)
-
             if isinstance(value, str):
                 services.add(value)
 
@@ -84,78 +72,72 @@ def _prepare_arguments(
     arguments: dict[str, Any],
     state: IncidentState,
 ) -> dict[str, Any]:
-
+    """Infer missing service argument if only a single service is present in state."""
     args = dict(arguments)
 
     if tool in {
-        'search_logs',
-        'get_metrics',
-        'get_deploys',
-        'get_config',
-        'check_health',
-    } and 'service' not in args:
-
+        "search_logs",
+        "get_metrics",
+        "get_deploys",
+        "get_config",
+        "check_health",
+    } and "service" not in args:
         services = _extract_services(state)
-
         if len(services) == 1:
-            args['service'] = services[0]
+            args["service"] = services[0]
 
     return args
 
 
 def investigate_node(
     state: IncidentState,
-    client,
+    client: Any,
 ) -> dict[str, Any]:
-
+    """
+    Core investigation node.
+    
+    What it does:
+    1. Increments investigation round count and enforces MAX_INVESTIGATION_ROUNDS limit.
+    2. Calls decision engine (investigate method) to decide tool requests or root cause selection.
+    3. Executes requested tools via ToolExecutor (which handles retries on timeouts).
+    4. Updates hypotheses confidence, supporting/contradicting evidence, and timeline.
+    5. Returns updated state dictionary for graph routing.
+    """
     executor = ToolExecutor(client)
     engine = get_decision_engine()
 
-    round_number = (
-        state.get('investigation_round', 0) + 1
-    )
+    round_number = state.get("investigation_round", 0) + 1
 
+    # Escalate if investigation round limit reached without high confidence
     if round_number > MAX_INVESTIGATION_ROUNDS:
-
         return {
-            'status': 'escalated',
-            'investigation_complete': True,
-            'last_decision': {
-                'phase': 'escalate',
-                'reasoning': (
-                    'Investigation round limit reached '
-                    'without sufficient confidence.'
+            "status": "escalated",
+            "investigation_complete": True,
+            "last_decision": {
+                "phase": "escalate",
+                "reasoning": (
+                    "Investigation round limit reached without sufficient confidence."
                 ),
             },
         }
 
     available_tools = executor.available_tools()
 
+    # Query decision engine for next action
     decision = engine.investigate(
         state=dict(state),
         available_tools=available_tools,
     )
 
-    evidence = list(
-        state.get('evidence', [])
-    )
+    evidence = list(state.get("evidence", []))
+    errors = list(state.get("errors", []))
+    timeline = list(state.get("timeline", []))
 
-    errors = list(
-        state.get('errors', [])
-    )
-
-    timeline = list(
-        state.get('timeline', [])
-    )
-
-    executed_tools = 0
-
+    # Execute requested investigation tools
     for request in decision.tool_requests:
-
         tool = request.tool
 
         try:
-
             arguments = _prepare_arguments(
                 tool,
                 request.arguments,
@@ -170,125 +152,95 @@ def investigate_node(
             evidence = _append_evidence(
                 {
                     **state,
-                    'evidence': evidence,
+                    "evidence": evidence,
                 },
                 tool,
                 result,
             )
 
-            executed_tools += 1
-
             timeline.append(
                 {
-                    'event': 'tool_success',
-                    'tool': tool,
-                    'round': round_number,
-                    'reason': request.reason,
+                    "event": "tool_success",
+                    "tool": tool,
+                    "round": round_number,
+                    "reason": request.reason,
                 }
             )
 
         except Exception as exc:
-
             errors.append(
                 {
-                    'tool': tool,
-                    'error_type': type(exc).__name__,
-                    'message': str(exc),
-                    'round': round_number,
+                    "tool": tool,
+                    "error_type": type(exc).__name__,
+                    "message": str(exc),
+                    "round": round_number,
                 }
             )
 
             timeline.append(
                 {
-                    'event': 'tool_failure',
-                    'tool': tool,
-                    'round': round_number,
-                    'error': str(exc),
+                    "event": "tool_failure",
+                    "tool": tool,
+                    "round": round_number,
+                    "error": str(exc),
                 }
             )
 
-    hypothesis_updates = (
-        decision.hypothesis_updates
-    )
-
-    hypotheses = list(
-        state.get('hypotheses', [])
-    )
+    # Process hypothesis updates
+    hypothesis_updates = decision.hypothesis_updates
+    hypotheses = list(state.get("hypotheses", []))
 
     hypothesis_map = {
-        item.get('id'): dict(item)
+        item.get("id"): dict(item)
         for item in hypotheses
-        if item.get('id')
+        if item.get("id")
     }
 
     for update in hypothesis_updates:
-
         hypothesis = hypothesis_map.get(
             update.hypothesis_id,
             {
-                'id': update.hypothesis_id,
-                'description': update.hypothesis_id,
+                "id": update.hypothesis_id,
+                "description": update.hypothesis_id,
             },
         )
 
-        hypothesis['confidence'] = (
-            update.confidence
-        )
+        hypothesis["confidence"] = update.confidence
+        hypothesis["supporting_evidence"] = update.supporting_evidence
+        hypothesis["contradicting_evidence"] = update.contradicting_evidence
 
-        hypothesis['supporting_evidence'] = (
-            update.supporting_evidence
-        )
-
-        hypothesis['contradicting_evidence'] = (
-            update.contradicting_evidence
-        )
-
-        hypothesis_map[
-            update.hypothesis_id
-        ] = hypothesis
+        hypothesis_map[update.hypothesis_id] = hypothesis
 
         timeline.append(
             {
-                'event': 'hypothesis_update',
-                'hypothesis': update.hypothesis_id,
-                'confidence': update.confidence,
-                'reason': (
-                    update.confidence_change_reason
-                ),
-                'supporting_evidence': (
-                    update.supporting_evidence
-                ),
-                'contradicting_evidence': (
-                    update.contradicting_evidence
-                ),
-                'round': round_number,
+                "event": "hypothesis_update",
+                "hypothesis": update.hypothesis_id,
+                "confidence": update.confidence,
+                "reason": update.confidence_change_reason,
+                "supporting_evidence": update.supporting_evidence,
+                "contradicting_evidence": update.contradicting_evidence,
+                "round": round_number,
             }
         )
 
-    hypotheses = list(
-        hypothesis_map.values()
-    )
+    hypotheses = list(hypothesis_map.values())
 
     return {
-        'evidence': evidence,
-        'hypotheses': hypotheses,
-        'selected_hypothesis': (
-            decision.selected_hypothesis
-        ),
-        'investigation_round': round_number,
-        'investigation_complete': (
-            decision.investigation_complete
-        ),
-        'last_decision': decision.model_dump(),
-        'errors': errors,
-        'timeline': timeline,
-        'status': (
-            'investigating'
+        "evidence": evidence,
+        "hypotheses": hypotheses,
+        "selected_hypothesis": decision.selected_hypothesis,
+        "investigation_round": round_number,
+        "investigation_complete": decision.investigation_complete,
+        "last_decision": decision.model_dump(),
+        "errors": errors,
+        "timeline": timeline,
+        "status": (
+            "investigating"
             if not decision.investigation_complete
             else (
-                'root_cause_identified'
+                "root_cause_identified"
                 if decision.selected_hypothesis
-                else 'escalated'
+                else "escalated"
             )
         ),
     }

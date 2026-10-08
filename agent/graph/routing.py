@@ -12,6 +12,14 @@ def route_after_investigation(
     "remediation",
     "end",
 ]:
+    """
+    Conditional routing function evaluated after each investigation round.
+    
+    Logic:
+    - If status is escalated (insufficient evidence or round limit), terminate graph.
+    - If investigation is complete and root cause hypothesis selected, proceed to remediation planning.
+    - Otherwise, loop back for another round of evidence collection.
+    """
     if state.get("status") == "escalated":
         return "end"
 
@@ -29,6 +37,13 @@ def route_after_approval(
     "execute",
     "end",
 ]:
+    """
+    Conditional routing function evaluated after the human approval node.
+    
+    Logic:
+    - If approval was granted, proceed to remediation execution.
+    - If approval was denied, immediately terminate graph to guarantee safety (0 unapproved actions).
+    """
     if state.get("approval_status") == "approved" or state.get("status") == "approved":
         return "execute"
 

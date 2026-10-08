@@ -5,6 +5,7 @@ from typing import Any
 from agent.graph.state import IncidentState
 from agent.tools.executor import ToolExecutor
 
+# Mapping of primary metric names per environment service
 SERVICE_METRIC_MAP = {
     "api-gateway": "login_success_rate_pct",
     "auth-service": "tls_handshake_failures",
@@ -20,7 +21,15 @@ def verify_incident(
     state: IncidentState,
     client: Any,
 ) -> dict[str, Any]:
-
+    """
+    Post-remediation verification node.
+    
+    What it does:
+    1. Executes health checks (`check_health`) on target and alert services.
+    2. Retrieves service metrics (`get_metrics`), dynamically selecting valid metric names per service.
+    3. Searches error logs (`search_logs`) to ensure error rate has subsided.
+    4. Combines verification signals to determine whether the incident is 'resolved'.
+    """
     proposed = state.get("proposed_action")
 
     if not proposed:
@@ -64,7 +73,7 @@ def verify_incident(
         except Exception as exc:
             remaining_errors.append(f"Health verification failed for {svc}: {exc}")
 
-    # 2. Metrics Verification
+    # 2. Metrics Verification with dynamic metric resolution
     for svc in services_to_check:
         metric_name = SERVICE_METRIC_MAP.get(svc, "error_rate_pct")
         try:
@@ -72,6 +81,7 @@ def verify_incident(
             verification_results[f"metrics:{svc}"] = metrics
             signals.append(f"{svc}_metrics_verified")
         except Exception as exc:
+            # Dynamically parse known metrics from ToolError exception message if primary fails
             exc_str = str(exc)
             known_metrics = []
             if "known:" in exc_str:
@@ -113,7 +123,7 @@ def verify_incident(
         except Exception as exc:
             remaining_errors.append(f"Log verification failed for {svc}: {exc}")
 
-    # Determine resolution
+    # Determine final resolution status
     world_fixed = getattr(client, "fixed", False)
     health_ok = any("health_healthy" in s or "health_checked" in s for s in signals)
 

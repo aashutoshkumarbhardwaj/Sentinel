@@ -6,6 +6,7 @@ from typing import Any
 
 @dataclass(frozen=True)
 class ToolSpec:
+    """Specification schema for a production investigation or remediation tool."""
     name: str
     description: str
     category: str
@@ -16,70 +17,71 @@ class ToolSpec:
     read_only: bool = True
 
 
+# Central registry of available production tools with schema and risk level
 TOOL_SPECS: dict[str, ToolSpec] = {
-    'get_alert': ToolSpec(
-        name='get_alert',
-        description='Retrieve the active incident alert.',
-        category='investigation',
-        risk='low',
+    "get_alert": ToolSpec(
+        name="get_alert",
+        description="Retrieve the active incident alert.",
+        category="investigation",
+        risk="low",
     ),
 
-    'list_services': ToolSpec(
-        name='list_services',
-        description='List services available in the environment.',
-        category='investigation',
-        risk='low',
+    "list_services": ToolSpec(
+        name="list_services",
+        description="List services available in the environment.",
+        category="investigation",
+        risk="low",
     ),
 
-    'search_logs': ToolSpec(
-        name='search_logs',
-        description='Search service logs for errors and relevant events.',
-        category='investigation',
-        risk='low',
-        required_args=('service',),
-        optional_args=('level',),
+    "search_logs": ToolSpec(
+        name="search_logs",
+        description="Search service logs for errors and relevant events.",
+        category="investigation",
+        risk="low",
+        required_args=("service",),
+        optional_args=("level",),
     ),
 
-    'get_metrics': ToolSpec(
-        name='get_metrics',
-        description='Retrieve service metrics.',
-        category='investigation',
-        risk='low',
-        required_args=('service',),
-        optional_args=('metric',),
+    "get_metrics": ToolSpec(
+        name="get_metrics",
+        description="Retrieve service metrics.",
+        category="investigation",
+        risk="low",
+        required_args=("service",),
+        optional_args=("metric",),
     ),
 
-    'get_deploys': ToolSpec(
-        name='get_deploys',
-        description='Retrieve recent deployments for a service.',
-        category='investigation',
-        risk='low',
-        required_args=('service',),
+    "get_deploys": ToolSpec(
+        name="get_deploys",
+        description="Retrieve recent deployments for a service.",
+        category="investigation",
+        risk="low",
+        required_args=("service",),
     ),
 
-    'get_config': ToolSpec(
-        name='get_config',
-        description='Retrieve configuration for a service.',
-        category='investigation',
-        risk='low',
-        required_args=('service',),
+    "get_config": ToolSpec(
+        name="get_config",
+        description="Retrieve configuration for a service.",
+        category="investigation",
+        risk="low",
+        required_args=("service",),
     ),
 
-    'check_health': ToolSpec(
-        name='check_health',
-        description='Check current service health.',
-        category='verification',
-        risk='low',
-        required_args=('service',),
+    "check_health": ToolSpec(
+        name="check_health",
+        description="Check current service health.",
+        category="verification",
+        risk="low",
+        required_args=("service",),
     ),
 
-    'execute_action': ToolSpec(
-        name='execute_action',
-        description='Execute a production remediation action.',
-        category='remediation',
-        risk='high',
-        required_args=('action', 'target'),
-        optional_args=('params', 'approved_by'),
+    "execute_action": ToolSpec(
+        name="execute_action",
+        description="Execute a production remediation action.",
+        category="remediation",
+        risk="high",
+        required_args=("action", "target"),
+        optional_args=("params", "approved_by"),
         retryable=False,
         read_only=False,
     ),
@@ -87,10 +89,16 @@ TOOL_SPECS: dict[str, ToolSpec] = {
 
 
 class ToolValidationError(Exception):
+    """Raised when tool arguments fail schema validation."""
     pass
 
 
 class ToolRegistry:
+    """
+    Registry for resolving and validating tool specifications.
+    
+    Why: Enforces parameter schemas and prevents invalid tool calls before invocation.
+    """
 
     def __init__(
         self,
@@ -99,23 +107,25 @@ class ToolRegistry:
         self.specs = specs or TOOL_SPECS
 
     def get(self, name: str) -> ToolSpec:
+        """Lookup tool spec by name."""
         try:
             return self.specs[name]
         except KeyError as exc:
             raise ToolValidationError(
-                f'Unknown tool: {name}'
+                f"Unknown tool: {name}"
             ) from exc
 
     def describe(self) -> list[dict[str, Any]]:
+        """Return schema descriptors for all registered tools."""
         return [
             {
-                'name': spec.name,
-                'description': spec.description,
-                'category': spec.category,
-                'risk': spec.risk,
-                'required_args': list(spec.required_args),
-                'optional_args': list(spec.optional_args),
-                'read_only': spec.read_only,
+                "name": spec.name,
+                "description": spec.description,
+                "category": spec.category,
+                "risk": spec.risk,
+                "required_args": list(spec.required_args),
+                "optional_args": list(spec.optional_args),
+                "read_only": spec.read_only,
             }
             for spec in self.specs.values()
         ]
@@ -125,7 +135,7 @@ class ToolRegistry:
         name: str,
         arguments: dict[str, Any],
     ) -> ToolSpec:
-
+        """Validate tool invocation arguments against required/allowed schema."""
         spec = self.get(name)
 
         missing = [
@@ -136,7 +146,7 @@ class ToolRegistry:
 
         if missing:
             raise ToolValidationError(
-                f'Missing required arguments for {name}: {missing}'
+                f"Missing required arguments for {name}: {missing}"
             )
 
         allowed = set(spec.required_args) | set(
@@ -147,13 +157,15 @@ class ToolRegistry:
 
         if unexpected:
             raise ToolValidationError(
-                f'Unexpected arguments for {name}: {unexpected}'
+                f"Unexpected arguments for {name}: {unexpected}"
             )
 
         return spec
 
     def is_write(self, name: str) -> bool:
+        """Check if tool modifies state (non read-only)."""
         return not self.get(name).read_only
 
     def risk(self, name: str) -> str:
+        """Get risk classification of tool."""
         return self.get(name).risk

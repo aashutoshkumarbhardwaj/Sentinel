@@ -10,7 +10,15 @@ def approval_node(
     state: IncidentState,
     approver: Callable[[dict[str, Any]], str | None] | None = None,
 ) -> dict[str, Any]:
-
+    """
+    Human-in-the-loop approval gate node.
+    
+    What it does:
+    1. Checks proposed action risk. Low risk actions bypass approval.
+    2. High/critical risk actions invoke human approver callback or LangGraph interrupt.
+    3. If approved, sets approval_status='approved' and records approved_by identity.
+    4. If denied, sets approval_status='denied' and status='denied' (causing graph to halt safely).
+    """
     proposed = state.get("proposed_action")
 
     if not proposed:
@@ -22,6 +30,7 @@ def approval_node(
 
     risk = proposed.get("risk", "low")
 
+    # Low risk actions do not require explicit human approval
     if risk not in {"high", "critical"}:
         return {
             "approval_status": "not_required",
@@ -45,6 +54,7 @@ def approval_node(
         "evidence": proposed.get("evidence", []),
     }
 
+    # Use runtime approver callback if provided; fallback to LangGraph interrupt
     if approver is not None:
         response = approver(request)
     else:
@@ -55,6 +65,7 @@ def approval_node(
             }
         )
 
+    # Handle denied approval
     if not response:
         return {
             "approval_status": "denied",
@@ -91,6 +102,7 @@ def approval_node(
             ],
         }
 
+    # Grant approval
     return {
         "approval_status": "approved",
         "approved_by": approved_by,

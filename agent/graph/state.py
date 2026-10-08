@@ -4,6 +4,7 @@ from typing import Any, TypedDict
 
 
 class Evidence(TypedDict, total=False):
+    """Represents an empirical evidence item collected from production tools."""
     id: str
     source: str
     data: Any
@@ -13,6 +14,7 @@ class Evidence(TypedDict, total=False):
 
 
 class Hypothesis(TypedDict, total=False):
+    """Represents a plausible root cause hypothesis being evaluated."""
     id: str
     description: str
     confidence: float
@@ -22,6 +24,7 @@ class Hypothesis(TypedDict, total=False):
 
 
 class ProposedAction(TypedDict, total=False):
+    """Represents a planned production remediation action."""
     action: str
     target: str
     params: dict[str, Any]
@@ -32,38 +35,26 @@ class ProposedAction(TypedDict, total=False):
 
 
 class IncidentState(TypedDict, total=False):
+    """
+    Central state dictionary maintained across LangGraph nodes.
+    
+    Persisted across process restarts using SqliteSaver checkpointer.
+    """
     thread_id: str
-
     alert: dict[str, Any] | None
-
     status: str
-
     evidence: list[Evidence]
-
     hypotheses: list[Hypothesis]
-
     selected_hypothesis: str | None
-
     proposed_action: ProposedAction | None
-
     alternative_actions: list[ProposedAction]
-
     approval_status: str | None
-
     approved_by: str | None
-
     action_result: dict[str, Any] | None
-
     verification: dict[str, Any] | None
-
     retries: dict[str, int]
-
     errors: list[dict[str, Any]]
-
     timeline: list[dict[str, Any]]
-
     investigation_round: int
-
     investigation_complete: bool
-
     last_decision: dict[str, Any] | None

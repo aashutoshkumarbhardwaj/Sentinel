@@ -10,6 +10,7 @@ from agent.llm.schemas import (
 
 
 class DecisionEngine(Protocol):
+    """Protocol interface for decision engines (both LLM-backed and offline deterministic)."""
     def investigate(
         self,
         state: dict[str, Any],
@@ -25,16 +26,16 @@ class DecisionEngine(Protocol):
 
 
 class StructuredLLMEngine:
-    '''
-    LLM-backed decision engine.
+    """
+    LLM-backed decision engine using LangChain structured output.
 
-    The model is forced to produce validated Pydantic
-    objects instead of free-form text.
-    '''
+    Why: Enforces that the model produces validated Pydantic objects instead of free-form text.
+    """
 
     def __init__(self, model: Any):
         self.model = model
 
+        # Bind Pydantic schemas for structured output enforcement
         self.investigation_model = model.with_structured_output(
             InvestigationDecision
         )
@@ -48,7 +49,7 @@ class StructuredLLMEngine:
         state: dict[str, Any],
         available_tools: list[dict[str, Any]],
     ) -> InvestigationDecision:
-
+        """Construct investigation prompt and query structured LLM."""
         from agent.llm.prompts import build_investigation_prompt
 
         prompt = build_investigation_prompt(
@@ -62,7 +63,7 @@ class StructuredLLMEngine:
         self,
         state: dict[str, Any],
     ) -> RemediationPlan:
-
+        """Construct remediation prompt and query structured LLM."""
         from agent.llm.prompts import build_remediation_prompt
 
         prompt = build_remediation_prompt(state)
@@ -71,23 +72,21 @@ class StructuredLLMEngine:
 
 
 def build_llm_engine() -> StructuredLLMEngine | None:
-    '''
-    Creates the LLM engine only when explicitly configured.
+    """
+    Creates the LLM engine when OPENAI_API_KEY environment variable is configured.
 
-    Returning None is intentional. The agent must remain
-    executable in offline evaluation mode.
-    '''
-
-    api_key = os.getenv('OPENAI_API_KEY')
+    Why: Returning None when no API key is present allows offline evaluation mode.
+    """
+    api_key = os.getenv("OPENAI_API_KEY")
 
     if not api_key:
         return None
 
-    model_name = os.getenv('OPENAI_MODEL')
+    model_name = os.getenv("OPENAI_MODEL")
 
     if not model_name:
         raise RuntimeError(
-            'OPENAI_MODEL must be configured when OPENAI_API_KEY is set'
+            "OPENAI_MODEL must be configured when OPENAI_API_KEY is set"
         )
 
     from langchain_openai import ChatOpenAI

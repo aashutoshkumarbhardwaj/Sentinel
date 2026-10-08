@@ -16,8 +16,11 @@ class DeterministicDecisionEngine:
     """
     Offline deterministic decision engine.
 
-    Gathers evidence across investigation rounds, evaluates hypotheses,
-    and constructs precise remediation plans for production incidents.
+    What it does:
+    1. Evaluates collected evidence across investigation rounds.
+    2. Dynamically updates hypothesis confidence scores based on empirical log/config signatures.
+    3. Selects the root cause hypothesis once confidence exceeds threshold (e.g. 0.90+).
+    4. Formulates a targeted remediation plan citing supporting evidence.
     """
 
     def investigate(
@@ -25,22 +28,29 @@ class DeterministicDecisionEngine:
         state: dict[str, Any],
         available_tools: list[dict[str, Any]],
     ) -> InvestigationDecision:
-
+        """
+        Main investigation decision method.
+        
+        Logic flow:
+        - Scans gathered log/config evidence strings for known incident signatures (S1, S2, S3).
+        - If root cause evidence is found, selects root cause with high confidence (0.90+).
+        - If evidence is still needed, requests specific investigation tools (logs, configs, deploys).
+        """
         evidence = state.get("evidence", [])
         alert = state.get("alert") or {}
         available_names = {
             item.get("name") or item.get("tool") for item in available_tools
         }
 
-        # Combine all evidence data into string for log signature matching
+        # Combine all evidence data into a single string for log signature matching
         evidence_text = json.dumps(
             [item.get("data") for item in evidence], default=str
         ).lower()
 
-        # Track tool execution history
+        # Track history of executed tool sources
         executed_sources = [item.get("source") for item in evidence]
 
-        # 1. Detect S3: Certificate Expiry on auth-service
+        # 1. Detect Scenario S3: Certificate Expiry on auth-service
         if "certificate has expired" in evidence_text or "x509" in evidence_text or "tls_cert_not_after" in evidence_text:
             root_cause_desc = (
                 "auth-service TLS certificate expired at 11:00Z; api-gateway cannot complete handshake and returns 502 on login"
@@ -72,7 +82,7 @@ class DeterministicDecisionEngine:
                 investigation_complete=True,
             )
 
-        # 2. Detect S1: Bad deploy on payments-api
+        # 2. Detect Scenario S1: Bad deploy on payments-api
         if "pool exhausted" in evidence_text or "db_pool_size=5" in evidence_text:
             root_cause_desc = (
                 "payments-api v2.14.3 deployment tuned db_pool_size to 5 causing connection pool exhaustion under load"
@@ -94,7 +104,7 @@ class DeterministicDecisionEngine:
                 investigation_complete=True,
             )
 
-        # 3. Detect S2: DB Saturation on reporting-job
+        # 3. Detect Scenario S2: DB Saturation on reporting-job
         if "long-running query" in evidence_text and "reporting" in evidence_text:
             root_cause_desc = (
                 "reporting-job running unindexed long query on primary orders-db without read replica saturates connections"
@@ -116,7 +126,7 @@ class DeterministicDecisionEngine:
                 investigation_complete=True,
             )
 
-        # 4. Gather evidence phase
+        # 4. Gather evidence phase: Request initial topology and alert service logs
         requested: list[ToolRequest] = []
 
         if "get_alert" not in executed_sources and "get_alert" in available_names:
@@ -125,7 +135,7 @@ class DeterministicDecisionEngine:
         if "list_services" not in executed_sources and "list_services" in available_names:
             requested.append(ToolRequest(tool="list_services", arguments={}, reason="Discover environment service topology", hypothesis_ids=[]))
 
-        # If initial topology is collected, run targeted investigation
+        # Target specific upstream logs/configs based on affected alert service
         if len(evidence) >= 2 or ("get_alert" in executed_sources and "list_services" in executed_sources):
             alert_service = alert.get("service") or alert.get("affected_service") or "api-gateway"
 
@@ -156,7 +166,7 @@ class DeterministicDecisionEngine:
                 investigation_complete=False,
             )
 
-        # Fallback if rounds finished without specific match
+        # Fall back to escalation if rounds finished without evidence match
         return InvestigationDecision(
             phase="escalate",
             reasoning="Gathered evidence was insufficient to isolate a root cause safely.",
@@ -171,7 +181,14 @@ class DeterministicDecisionEngine:
         self,
         state: dict[str, Any],
     ) -> RemediationPlan:
-
+        """
+        Remediation planning method.
+        
+        Matches identified root cause evidence to minimal safe remediation actions:
+        - S3: Update auth-service config to valid cert reference auth-cert-2026-10.
+        - S1: Roll back payments-api deploy to v2.14.2.
+        - S2: Restart reporting-job to release 140 DB connection slots.
+        """
         evidence = state.get("evidence", [])
         evidence_text = json.dumps(
             [item.get("data") for item in evidence], default=str

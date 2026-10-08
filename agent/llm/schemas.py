@@ -5,6 +5,7 @@ from pydantic import BaseModel, Field
 
 
 class ToolRequest(BaseModel):
+    """Structured request for invoking an investigation tool."""
     tool: str = Field(..., description="Name of the tool to invoke")
     arguments: dict[str, Any] = Field(default_factory=dict, description="Arguments to pass to the tool")
     reason: str = Field(..., description="Justification for invoking this tool based on evidence")
@@ -12,6 +13,7 @@ class ToolRequest(BaseModel):
 
 
 class HypothesisUpdate(BaseModel):
+    """Structured confidence update for a root cause hypothesis."""
     hypothesis_id: str = Field(..., description="Identifier of the hypothesis")
     confidence: float = Field(..., description="Updated confidence score between 0.0 and 1.0")
     confidence_change_reason: str = Field(..., description="Reason for updating confidence based on evidence")
@@ -20,6 +22,7 @@ class HypothesisUpdate(BaseModel):
 
 
 class InvestigationDecision(BaseModel):
+    """Structured output returned by the investigation decision engine."""
     phase: str = Field(..., description="Current investigation phase (e.g., gather_evidence, select_root_cause, escalate)")
     reasoning: str = Field(..., description="Reasoning behind this decision")
     tool_requests: list[ToolRequest] = Field(default_factory=list, description="Tools requested for gather_evidence phase")
@@ -30,6 +33,7 @@ class InvestigationDecision(BaseModel):
 
 
 class ActionCandidate(BaseModel):
+    """Structured candidate remediation action."""
     action: str = Field(..., description="Remediation action name (e.g. update_config, rollback_deploy)")
     target: str = Field(..., description="Target service name")
     params: dict[str, Any] = Field(default_factory=dict, description="Parameters for the remediation action")
@@ -39,6 +43,7 @@ class ActionCandidate(BaseModel):
 
 
 class RemediationPlan(BaseModel):
+    """Structured output returned by the remediation planner."""
     selected_action: ActionCandidate | None = Field(default=None, description="Primary recommended remediation action")
     alternatives: list[ActionCandidate] = Field(default_factory=list, description="Alternative candidate remediation actions")
     rationale: str = Field(..., description="Overall rationale for the selected remediation plan")

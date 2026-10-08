@@ -4,6 +4,7 @@ from typing import Any
 
 
 class KnowledgeArticle:
+    """Represents a past incident record or SRE runbook entry in the knowledge base."""
 
     def __init__(
         self,
@@ -20,6 +21,7 @@ class KnowledgeArticle:
         self.recommended_action = recommended_action
 
 
+# Simulated knowledge base of past incidents and operational runbooks
 KNOWLEDGE_BASE: list[KnowledgeArticle] = [
     KnowledgeArticle(
         article_id="INC-2025-0912",
@@ -46,8 +48,14 @@ KNOWLEDGE_BASE: list[KnowledgeArticle] = [
 
 
 class KnowledgeRetriever:
+    """
+    Knowledge retrieval engine for searching past incident history and runbooks.
+    
+    Why: Grounding agent reasoning in institutional knowledge prevents reinventing known solutions.
+    """
 
     def search(self, query: str, service: str | None = None) -> list[dict[str, Any]]:
+        """Search runbooks matching service name and query terms."""
         query_lower = query.lower()
         results = []
 
