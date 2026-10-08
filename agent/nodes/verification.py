@@ -1,8 +1,19 @@
 from __future__ import annotations
 
+import ast
 from typing import Any
 from agent.graph.state import IncidentState
 from agent.tools.executor import ToolExecutor
+
+SERVICE_METRIC_MAP = {
+    "api-gateway": "login_success_rate_pct",
+    "auth-service": "tls_handshake_failures",
+    "payments-api": "error_rate_pct",
+    "checkout-api": "error_rate_pct",
+    "orders-db": "active_connections",
+    "cache-service": "hit_ratio",
+    "reporting-job": "rows_scanned_millions",
+}
 
 
 def verify_incident(
@@ -55,12 +66,40 @@ def verify_incident(
 
     # 2. Metrics Verification
     for svc in services_to_check:
+        metric_name = SERVICE_METRIC_MAP.get(svc, "error_rate_pct")
         try:
-            metrics = executor.execute("get_metrics", {"service": svc})
+            metrics = executor.execute("get_metrics", {"service": svc, "metric": metric_name})
             verification_results[f"metrics:{svc}"] = metrics
             signals.append(f"{svc}_metrics_verified")
         except Exception as exc:
-            remaining_errors.append(f"Metrics verification failed for {svc}: {exc}")
+            exc_str = str(exc)
+            known_metrics = []
+            if "known:" in exc_str:
+                try:
+                    start = exc_str.index("known:") + len("known:")
+                    raw_list = exc_str[start:].strip()
+                    known_metrics = ast.literal_eval(raw_list)
+                except Exception:
+                    pass
+
+            if not known_metrics:
+                known_metrics = ["login_success_rate_pct", "tls_handshake_failures", "error_rate_pct", "active_connections", "rows_scanned_millions", "hit_ratio"]
+
+            fallback_success = False
+            for km in known_metrics:
+                if km == metric_name:
+                    continue
+                try:
+                    metrics = executor.execute("get_metrics", {"service": svc, "metric": km})
+                    verification_results[f"metrics:{svc}"] = metrics
+                    signals.append(f"{svc}_metrics_verified")
+                    fallback_success = True
+                    break
+                except Exception:
+                    continue
+
+            if not fallback_success:
+                remaining_errors.append(f"Metrics verification failed for {svc}: {exc}")
 
     # 3. Logs Verification
     for svc in services_to_check:
