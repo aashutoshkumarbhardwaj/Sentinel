@@ -5,3 +5,6 @@ __pycache__/
 .pytest_cache/
 run_record.json
 .uv/
+.env
+.env.*
+!.env.example
